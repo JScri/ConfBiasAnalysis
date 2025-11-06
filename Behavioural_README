@@ -1,0 +1,252 @@
+This repository contains the behavioural analysis pipeline for a multi-phase BCI experiment investigating how people respond to information that confirms or challenges their existing beliefs. The study combines Unity-based experimental interfaces with Lab Streaming Layer (LSL) for real-time data synchronisation and comprehensive Python analysis.
+Experimental Design
+Phase 1: Pre-screening - BIS/BAS questionnaire for participant characterisation
+Phase 2: Belief Induction - Participants rate 60 statements across 12 topics (5 statements per topic)
+
+Topics: T01-T07, T15-T18, T20
+Ratings: 1 (Strongly Disagree) to 5 (Strongly Agree)
+Includes attention check validation
+
+Phase 3: Evidence Presentation - Interactive article selection and reading
+
+Participants select 3 articles per topic from 5 available options
+Each article has defined relationships to statements (confirmatory, disconfirmatory, neutral)
+Biosignals (EEG + heart rate) recorded during article reading
+Article ratings collected post-reading
+
+Article-Statement Linkage Schema
+The experimental foundation uses weighted relationships:
+
+1.0 = Direct confirmation/disconfirmation
+0.5 = Indirect confirmation/disconfirmation
+0.3 = Neutral relationship
+
+Core analysis scripts: 
+
+article_statement_mappings.py
+Defines the article-statement relationship matrices for all 12 topics
+
+bci_analysis_behavioural.py
+Main behavioural analysis pipeline - processes XDF and JSON data
+
+bci_batch_process.py
+Batch processing wrapper for multiple participants
+
+behavioural_statistical_analysis.py
+Statistical analysis with Monte Carlo significance testing
+
+rt_by_bias_analysis.py
+Reaction time analysis by bias type (confirmatory vs disconfirmatory)
+
+check_rating_distribution.py
+Validates rating distributions and generates Monte Carlo parameters
+
+monte_carlo_FIXED.py
+Monte Carlo simulation for null hypothesis testing
+
+
+Getting started:
+# Python 3.8+
+python3 --version
+
+# Required libraries
+pip install pandas numpy scipy matplotlib seaborn pyxdf
+
+Installation
+# Clone the repository
+git clone https://github.com/yourusername/ConfBiasAnalysis.git
+cd bci-confirmation-bias
+
+# Install dependencies
+pip install -r requirements.txt
+
+Usage:
+### 1. Check Rating Distributions (First Time Setup)
+
+Before running Monte Carlo analysis, check your actual participant rating distributions:
+
+```bash
+python3 check_rating_distribution.py "./test_session*/participant_*.json"
+```
+
+**Output:** Generates recommended `STATEMENT_RATING_PROBS` and `ARTICLE_RATING_PROBS` for Monte Carlo baseline.
+
+**Action Required:** Copy the output probabilities into `monte_carlo_FIXED.py` (lines 26-27)
+
+---
+
+### 2. Single Participant Analysis
+
+Analyse behavioural data for one participant:
+
+```bash
+python3 bci_analysis_behavioural.py \
+    --xdf_file "./test_session_001/recording_001.xdf" \
+    --json_file "./test_session_001/participant_001.json" \
+    --output_dir "./analysis_results/P001"
+```
+
+**Outputs:**
+- `P001_behavioural_analysis.txt` - Comprehensive metrics report
+- `P001_reaction_times.csv` - Event-level reaction time data
+- `P001_bias_metrics.csv` - Confirmation bias quantification
+- Visualisation plots (if enabled)
+
+---
+
+### 3. Batch Processing (Multiple Participants)
+
+Process all participants in one go:
+
+```bash
+python3 bci_batch_process.py \
+    --data_dir "./test_sessions" \
+    --output_dir "./batch_results"
+```
+
+The script automatically:
+- Detects all XDF/JSON file pairs
+- Processes each participant
+- Generates individual and summary reports
+- Compiles aggregate statistics
+
+---
+
+### 4. Statistical Analysis with Monte Carlo Testing
+
+Run comprehensive statistical analysis with null hypothesis testing:
+
+```bash
+python3 behavioural_statistical_analysis.py \
+    --results_dir "./batch_results" \
+    --monte_carlo_iterations 10000
+```
+
+**Key Metrics:**
+- Confirmation bias scores (decision matrix framework)
+- Reaction time differences (confirmatory vs disconfirmatory)
+- Attention check validation rates
+- Topic-level bias patterns
+- Statistical significance (p-values via Monte Carlo)
+
+---
+
+### 5. Reaction Time by Bias Analysis
+
+Detailed RT analysis stratified by bias type:
+
+```bash
+python3 rt_by_bias_analysis.py \
+    --input_file "./batch_results/aggregate_data.csv" \
+    --output_dir "./rt_analysis"
+```
+
+Analyses:
+- Statement rating RT by initial belief strength
+- Article selection RT by expected confirmation
+- Article reading duration by actual confirmation
+- Statistical comparisons across bias categories
+
+Data File Structure
+### Expected Directory Layout
+
+```
+project_root/
+├── test_session_001/
+│   ├── recording_001.xdf          # LSL recorded data (Unity markers + biosignals)
+│   └── participant_001.json       # Unity JSON output (responses + ratings)
+├── test_session_002/
+│   ├── recording_002.xdf
+│   └── participant_002.json
+└── analysis_results/
+    ├── P001/
+    │   ├── P001_behavioural_analysis.txt
+    │   ├── P001_reaction_times.csv
+    │   └── P001_bias_metrics.csv
+    └── summary/
+        ├── aggregate_statistics.csv
+        └── monte_carlo_results.txt
+```
+
+### XDF Event Markers
+
+Critical Unity event markers in XDF streams:
+- `STATEMENT_PRESENTED_{id}` / `STATEMENT_RESPONSE_{id}` → Statement RT
+- `ARTICLE_SELECTION_START` / `ARTICLE_SELECTED_{id}` → Selection RT  
+- `ARTICLE_READ_START` / `ARTICLE_READ_END` → Reading duration
+- `ARTICLE_RATING_START` / `ARTICLE_RATING_RESPONSE` → Rating RT
+- `ATTENTION_CHECK_START` / `ATTENTION_CHECK_RESPONSE` → Validation
+
+Key Metrics Explained
+### Confirmation Bias Score
+
+Decision matrix framework:
+- **TP** (True Positive): Selecting confirmatory article when expecting confirmation
+- **FP** (False Positive): Selecting disconfirmatory article when expecting confirmation  
+- **TN** (True Negative): Avoiding disconfirmatory article when expecting disconfirmation
+- **FN** (False Negative): Avoiding confirmatory article when expecting disconfirmation
+
+**Bias Score** = (TP + TN) / (TP + FP + TN + FN)
+
+Range: 0 to 1 (higher = stronger confirmation bias)
+
+---
+
+### Reaction Time Metrics
+
+**Statement Rating RT**: Time from statement presentation to rating submission
+
+**Article Selection RT**: Time from selection screen display to article choice
+
+**Article Reading Duration**: Time spent reading each article
+
+**Attention Check RT**: Time to respond to attention validation questions
+
+---
+
+### Attention Check Validation
+
+Failed attention checks receive **zero weighting** in bias calculations to ensure data integrity. The pipeline reports:
+- Pass rate per participant
+- Pass rate per topic  
+- Impact on overall bias metrics
+
+Important Notes
+### Data Integrity
+
+1. **Timestamp Synchronisation**: XDF timestamps use LSL epoch time. Event reconstruction algorithms calculate RTs as timestamp differences between paired markers.
+
+2. **Attention Check Failures**: Responses are weighted to zero but retained in datasets for transparency.
+
+3. **Missing Data Handling**: The pipeline gracefully handles:
+   - Missing article ratings (skipped articles)
+   - Incomplete attention checks
+   - XDF marker mismatches
+
+### Experimental Validity
+
+- All 60 statements are carefully balanced across topics
+- Article-statement relationships are verified through systematic classification
+- Readability preserved while maintaining experimental integrity
+- Backward compatibility maintained across code updates
+
+Analysis Pipeline Architecture
+Unity Experiment (Phase 2 & 3)
+        ↓
+LSL Markers → LabRecorder → XDF File
+        ↓                        ↓
+Unity JSON Output ← ← ← ← ← ← ← Event Reconstruction
+        ↓
+Behavioural Analysis Pipeline
+        ↓
+├─→ Reaction Time Calculation
+├─→ Confirmation Bias Quantification  
+├─→ Attention Check Validation
+└─→ Statistical Testing (Monte Carlo)
+        ↓
+Research Report / Journal Publication
+
+Author: Jason Stewart
+UTS FEIT Masters Candidate
+
+
