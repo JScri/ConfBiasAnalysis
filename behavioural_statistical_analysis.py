@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-COMPREHENSIVE Statistical Analysis for BCI Confirmation Bias Study
+Statistical Analysis for BCI Confirmation Bias Study
 ================================================================================================
 Integrates ALL questionnaire data including:
 - BIS/BAS personality measures (24 items)
@@ -8,7 +8,7 @@ Integrates ALL questionnaire data including:
 - Decision-making style measures (5 items)
 - Demographics (age)
 
-Uses CORRECT Monte Carlo baseline (~22%) for hypothesis testing
+Uses CORRECT Monte Carlo baseline (20.8%) for hypothesis testing
 Tests multiple hypotheses about confirmation bias patterns
 
 Author: Jason Stewart
@@ -35,7 +35,7 @@ class ComprehensiveBCIStatisticalAnalysis:
     
     Hypotheses Tested:
     ------------------
-    H0: No systematic confirmation bias (μ_CB = μ_chance ≈ 22%)
+    H0: No systematic confirmation bias (μ_CB = μ_chance ≈ 20%)
     
     H1: Confirmation bias prevalence
         - CB rate significantly exceeds chance level
@@ -1075,4 +1075,5 @@ if __name__ == "__main__":
     
     print("\n" + "="*70)
     print("All outputs saved to: ./bci_output/patched/batch_behavioural/statistical_analysis/")
+
     print("="*70)
