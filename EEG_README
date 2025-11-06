@@ -1,0 +1,456 @@
+> **Research Project:** Brain-Computer Interface (BCI) Confirmation Bias Detection  
+> **Institution:** University of Technology Sydney (UTS)  
+> **Ethics Approval:** ETH23-7909  
+> **Author:** Jason Stewart (25182902)  
+> **Date:** November 2025
+
+## Overview
+
+This repository contains a comprehensive Python-based EEG analysis pipeline developed for measuring neural correlates of confirmation bias using synchronised biosignals (EEG + heart rate). The study investigates how individuals respond to information that confirms or challenges their existing beliefs through a multi-phase experimental protocol.
+
+### Key Features
+
+-  **Complete preprocessing pipeline** from raw XDF to clean epochs
+-  **ICA-based artifact removal** 
+-  **Individual article analysis** across 8 decision stages
+-  **Comprehensive visualisation** tools for ERP and theta power
+-  **Flexible filtering** with attention check metadata preservation
+-  **Reproducible analysis** with detailed reporting
+
+## Research Context
+
+### Experimental Design
+
+The study employs a three-phase protocol:
+
+1. **Phase 0/1:** Pre-screening questionnaire (BIS/BAS)
+2. **Phase 2:** Induction phase - participants rate 100 statements across 12 topics
+3. **Phase 3:** Evidence presentation - participants select and read articles while EEG/HR are recorded
+
+**Hardware:**
+- OpenBCI Cyton+Daisy (64 electrodes, 125 Hz sampling rate)
+- Lab Streaming Layer (LSL) for timestamp synchronisation
+
+**Topics:** Climate change, vaccination, nuclear energy, GMOs, etc. (12 total)  
+**Articles:** 60 carefully designed articles with confirmatory/disconfirmatory relationships
+
+## Installation
+
+### Prerequisites
+
+```bash
+# Python 3.8 or higher
+python --version
+
+# Create virtual environment (recommended)
+python -m venv bci_env
+source bci_env/bin/activate  # On Windows: bci_env\Scripts\activate
+```
+
+### Required Packages
+
+```bash
+pip install numpy pandas scipy matplotlib seaborn
+pip install mne pyxdf
+pip install scikit-learn
+```
+
+### Verify Installation
+
+```bash
+python -c "import mne; print(f'MNE version: {mne.__version__}')"
+python -c "import pyxdf; print('pyXDF installed successfully')"
+```
+
+## Quick Start
+
+### 1. Preprocess Raw Data
+
+Convert XDF files from LabRecorder to preprocessed epochs:
+
+```bash
+python eeg_preprocessing_pipeline.py  
+
+# Example:
+python eeg_preprocessing_pipeline.py participant_01.xdf ./bci_output/p01/
+```
+
+**Output files:**
+- `statements_epochs-epo.fif` - Statement rating epochs
+- `statements_metadata.csv` - Trial metadata
+- `articles_epochs-epo.fif` - Article reading epochs  
+- `articles_metadata.csv` - Article metadata
+
+### 2. Apply ICA Artifact Removal (Optional)
+
+```bash
+python demo_ica_on_your_data.py
+```
+
+The script will:
+- Load your preprocessed epochs
+- Reconstruct continuous data
+- Apply ICA decomposition
+- Detect and remove artifacts (EOG, ECG, muscle)
+- Generate comprehensive reports
+
+**Output directory:** `./demo_ica_output/`
+
+### 3. Analyse Individual Articles
+
+```bash
+python individual_article_analysis.py
+```
+
+Analyses each article across 8 decision stages:
+1. Topic Selection
+2. Article List Presentation
+3. Article Preview (Hover)
+4. Article Selection (PRIMARY BIAS MOMENT)
+5. Reading Onset (BioSync)
+6. Reading Start
+7. Sustained Reading
+8. Article Rating
+
+### 4. Generate Visualisations
+
+```bash
+python individual_article_visualization.py
+```
+
+Creates:
+- ERP plots for each stage (all articles overlaid)
+- Theta power heatmaps (articles × stages)
+- Individual article trajectories
+- Stage-specific bias comparisons
+
+## Repository Structure
+
+```
+.
+├── eeg_preprocessing_pipeline.py      # Main preprocessing script
+├── eeg_ica_artifact_removal.py        # ICA module for artifact removal
+├── demo_ica_on_your_data.py           # ICA demonstration script
+├── individual_article_analysis.py     # Per-article analysis across stages
+├── individual_article_visualization.py # Comprehensive plotting tools
+├── README.md                           # This file
+└── requirements.txt                    # Python dependencies
+```
+
+## 📊 Pipeline Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    RAW DATA (XDF)                           │
+│            EEG (16 channels) + LSL Markers                  │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│            PREPROCESSING PIPELINE (V4.0)                    │
+│  • Load XDF (EEG + markers)                                 │
+│  • Convert ADC counts → microvolts                          │
+│  • Bandpass filter: 0.1-40 Hz                               │
+│  • Notch filter: 50 Hz                                      │
+│  • Average reference                                        │
+│  • Create epochs (NO attention filtering)                   │
+│  • Artifact rejection: 250 µV peak-to-peak                  │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│           ICA ARTIFACT REMOVAL (Optional)                   │
+│  • Fit Extended Infomax ICA (15 components)                 │
+│  • Detect artifacts:                                        │
+│    - EOG (eye blinks/movements)                             │
+│    - ECG (cardiac)                                          │
+│    - Muscle (20-40 Hz power)                                │
+│  • Remove components                                        │
+│  • Reconstruct clean data                                   │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│         INDIVIDUAL ARTICLE ANALYSIS                         │
+│  • Analyse each article separately                          │
+│  • Extract epochs for 8 decision stages                     │
+│  • Compute theta power (4-8 Hz)                             │
+│  • Calculate ERPs                                           │
+│  • Link to bias classifications                             │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│              VISUALISATION & REPORTING                      │
+│  • ERP plots by stage                                       │
+│  • Theta power heatmaps                                     │
+│  • Individual article trajectories                          │
+│  • Bias comparison plots                                    │
+│  • Statistical summaries                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 🔧 Module Details
+
+### 1. `eeg_preprocessing_pipeline.py`
+
+**Version:** 4.0 (November 2025)
+
+**Philosophy:** All epochs are preserved regardless of attention check status. Attention checks are stored as metadata only, allowing flexible filtering during analysis.
+
+**Key Methods:**
+- `load_xdf()` - Load and parse XDF files
+- `preprocess()` - Apply filters and rereferencing
+- `create_statement_epochs()` - Create statement rating epochs
+- `create_article_epochs()` - Create article reading epochs
+- `save_epochs()` - Export to MNE format
+
+**Configuration:**
+```python
+SAMPLING_RATE = 125.0 Hz
+BANDPASS_FILTER = (0.1, 40) Hz
+NOTCH_FILTER = 50 Hz
+REFERENCE = 'average'
+ARTIFACT_THRESHOLD = 250 µV
+```
+
+### 2. `eeg_ica_artifact_removal.py`
+
+**Version:** 1.0 (November 2025)
+
+**Methodology:** Extended Infomax ICA following Singh et al. (2025)
+
+**Key Features:**
+- Automated artifact detection (EOG, ECG, muscle)
+- Conservative rejection criteria
+- Comprehensive quality control reporting
+- Before/after comparison plots
+
+**ICA Configuration:**
+```python
+ICA_METHOD = 'infomax'
+N_COMPONENTS = 15
+EOG_THRESHOLD = 0.3
+ECG_THRESHOLD = 0.3
+MUSCLE_FREQ_RANGE = (20, 40) Hz
+```
+
+**Main Methods:**
+- `fit_ica()` - Decompose EEG into independent components
+- `detect_eog_artifacts()` - Identify eye movement components
+- `detect_ecg_artifacts()` - Identify cardiac components
+- `detect_muscle_artifacts()` - Identify muscle artifact components
+- `run_complete_ica()` - Full pipeline with reporting
+
+### 3. `individual_article_analysis.py`
+
+**Version:** 1.0 (November 2025)
+
+**Purpose:** Analyse each article separately across the complete decision-making cascade.
+
+**8 Decision Stages:**
+
+| Stage | Marker | Time Window | Description |
+|-------|--------|-------------|-------------|
+| Topic Selection | `TOPIC_SELECT` | -0.5 to 2.0s | Interest selection |
+| List Presentation | `ARTICLE_SELECTOR_START` | 0 to 3.0s | Article list appears |
+| Preview (Hover) | `ARTICLE_PREVIEW` | -0.2 to 2.0s | Headline consideration |
+| Article Selection | `ARTICLE_SELECT` | -0.5 to 2.0s | **PRIMARY BIAS MOMENT** |
+| Reading Onset | `BIOSYNC_STIMULUS_ONSET` | 0 to 2.0s | Reading begins |
+| Reading Start | `ARTICLE_READ_START` | 0 to 2.0s | Content processing |
+| Sustained Reading | `ARTICLE_READ_START` | 2.0 to 10.0s | Continued processing |
+| Article Rating | `ARTICLE_RATING` | -0.5 to 2.0s | Final response |
+
+**Output Files:**
+- `individual_article_results.json` - Complete analysis data
+- `theta_power_matrix.csv` - Theta power (articles × stages)
+- `erp_summary.csv` - ERP metrics for all stages
+- `article_metadata.csv` - Article information and classifications
+
+### 4. `individual_article_visualization.py`
+
+**Version:** 1.0 (November 2025)
+
+**Visualisation Types:**
+- **ERP Plots:** All 14 articles overlaid, colour-coded by bias type
+- **Theta Heatmaps:** Articles × stages matrix
+- **Trajectory Plots:** Individual article evolution across stages
+- **Bias Comparisons:** Statistical differences between confirmation/disconfirmation
+
+**Colour Scheme:**
+- 🔴 Confirmation Bias: Red (#ef4444)
+- 🔵 Disconfirmation Seeking: Blue (#3b82f6)
+- 🟠 Counter Bias: Orange (#f59e0b)
+- 🟢 Neutral: Green (#10b981)
+- ⚫ Mixed: Grey (#6b7280)
+
+## Data Formats
+
+### Input: XDF Files
+
+Lab Streaming Layer format containing:
+- **EEG Stream:** 16 channels @ 125 Hz (ADC counts)
+- **Marker Stream:** Event codes with LSL timestamps
+
+### Output: Preprocessed Epochs
+
+**MNE Format (.fif):**
+```python
+epochs = mne.read_epochs('statements_epochs-epo.fif')
+print(epochs.info)  # Channel info, sampling rate, etc.
+print(epochs.metadata)  # Trial-level information
+```
+
+**Metadata CSV:**
+```csv
+statement_code,topic_code,rating,attention_check,attention_passed,start_time,...
+S01,T01,5,PASS,1,123.456,...
+```
+
+## Key Design Decisions
+
+### 1. No Attention Filtering at Preprocessing
+
+**Rationale:** Confirmation bias occurs at the moment of article selection, which happens BEFORE participants read content and BEFORE attention checks. Therefore, all epochs must be preserved to properly measure selection bias.
+
+**Implementation:**
+- Attention check status stored as metadata: `attention_passed` (0 or 1)
+- Filtering decisions made during analysis based on research question
+- Selection analysis: NO filtering
+- Reading analysis: OPTIONAL filtering
+- Post-rating analysis: CONSIDER filtering
+
+### 2. Multi-Stage Analysis Approach
+
+Rather than treating article selection as a single event, we analyse the complete decision cascade to capture:
+- **Interest formation** (topic selection)
+- **Option evaluation** (preview hover)
+- **Choice commitment** (article selection)
+- **Information processing** (reading stages)
+- **Belief updating** (rating)
+
+### 3. ICA as Optional Step
+
+**When to use ICA:**
+-  When artifacts are present (EOG, muscle)
+-  For methodological completeness in thesis
+-  To enable future reanalysis
+
+**When ICA may not be needed:**
+-  X Data already has minimal artifacts
+-  X Experimental design prevented movements
+-  X Time-sensitive deadline
+
+**Note:** Clean data (0% artifact rejection) validates experimental design!
+
+## Example Usage
+
+### Complete Analysis Workflow
+
+```python
+# 1. Preprocess raw data
+from eeg_preprocessing_pipeline import EEGPreprocessor
+
+preprocessor = EEGPreprocessor(
+    xdf_file='participant_01.xdf',
+    output_dir='./output/p01'
+)
+preprocessor.run_preprocessing()
+
+# 2. (Optional) Apply ICA
+from eeg_ica_artifact_removal import EEGICAProcessor
+import mne
+
+epochs = mne.read_epochs('./output/p01/articles_epochs-epo.fif')
+raw = epochs.to_data_frame()  # Reconstruct continuous
+
+ica_processor = EEGICAProcessor(output_dir='./output/p01/ica')
+cleaned_raw = ica_processor.run_complete_ica(raw)
+
+# 3. Analyse individual articles
+from individual_article_analysis import IndividualArticleAnalyzer
+
+analyzer = IndividualArticleAnalyzer(
+    epochs_file='./output/p01/articles_epochs-epo.fif',
+    metadata_file='./output/p01/articles_metadata.csv',
+    articles_file='article_mappings.csv',
+    output_dir='./output/p01/analysis'
+)
+analyzer.run_complete_analysis()
+
+# 4. Generate visualisations
+from individual_article_visualization import IndividualArticleVisualizer
+
+visualizer = IndividualArticleVisualizer(
+    analysis_dir='./output/p01/analysis',
+    output_dir='./output/p01/visualizations'
+)
+visualizer.create_all_visualizations()
+```
+
+### Filtering by Attention Checks
+
+```python
+import mne
+import pandas as pd
+
+# Load epochs and metadata
+epochs = mne.read_epochs('articles_epochs-epo.fif')
+metadata = pd.read_csv('articles_metadata.csv')
+
+# Filter for passed attention checks only
+passed_indices = metadata[metadata['attention_passed'] == 1].index
+epochs_clean = epochs[passed_indices]
+
+print(f"Original: {len(epochs)} epochs")
+print(f"After filtering: {len(epochs_clean)} epochs")
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**1. Import Error: No module named 'mne'**
+```bash
+pip install mne
+```
+
+**2. PyXDF not found**
+```bash
+pip install pyxdf
+```
+
+**3. Memory error during ICA**
+```python
+# Reduce data length or use fewer components
+ica = ICA(n_components=10)  # Instead of 15
+```
+
+**4. Marker alignment issues**
+```python
+# Check timestamp synchronisation
+print(f"EEG duration: {raw.times[-1]:.1f}s")
+print(f"Marker range: {markers_df['timestamp'].max() - markers_df['timestamp'].min():.1f}s")
+```
+
+**5. Missing attention check data**
+```python
+# Check metadata
+metadata['attention_check'].value_counts()
+# Expected: PASS, FAIL, MISSING
+```
+Author: Jason Stewart
+UTS FEIT Masters Candidate
+
+## Quick Reference Card
+
+| Task | Command |
+|------|---------|
+| Preprocess XDF | `python eeg_preprocessing_pipeline.py <xdf> <output>` |
+| Run ICA demo | `python demo_ica_on_your_data.py` |
+| Analyse articles | `python individual_article_analysis.py` |
+| Create plots | `python individual_article_visualization.py` |
+| Load epochs | `epochs = mne.read_epochs('file.fif')` |
+| Filter by attention | `epochs[metadata['attention_passed']==1]` |
+
+
