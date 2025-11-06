@@ -19,7 +19,7 @@ def check_rating_distributions(json_files_pattern):
     files_found = glob.glob(json_files_pattern)
     
     if not files_found:
-        print(f"❌ No files found matching pattern: {json_files_pattern}")
+        print(f" No files found matching pattern: {json_files_pattern}")
         print("\nTrying alternate patterns...")
         
         # Try some common alternatives
@@ -37,7 +37,7 @@ def check_rating_distributions(json_files_pattern):
                 break
         
         if not files_found:
-            print("\n❌ Could not find any participant JSON files!")
+            print("\n Could not find any participant JSON files!")
             return
     
     print(f"\n{'='*70}")
@@ -51,7 +51,7 @@ def check_rating_distributions(json_files_pattern):
             with open(json_file) as f:
                 data = json.load(f)
         except Exception as e:
-            print(f"  ❌ Error reading file: {e}")
+            print(f"   Error reading file: {e}")
             continue
         
         # Process statement responses
@@ -101,7 +101,7 @@ def check_rating_distributions(json_files_pattern):
     print(f"Article ratings (attention passed): {len(article_ratings_pass)}")
     
     if not statement_ratings_all and not article_ratings_all:
-        print("\n❌ No rating data found!")
+        print("\n No rating data found!")
         return
     
     # Calculate distributions
@@ -112,12 +112,12 @@ def check_rating_distributions(json_files_pattern):
     print(f"RATING DISTRIBUTIONS (ALL - Use for Monte Carlo)")
     print(f"{'='*70}")
     
-    print("\n📊 Statement Ratings (ALL):")
+    print("\n Statement Ratings (ALL):")
     if statement_ratings_all:
         for rating in [1, 2, 3, 4, 5]:
             count = stmt_counts.get(rating, 0)
             pct = count / len(statement_ratings_all) * 100
-            bar = '█' * int(pct / 2)
+            bar = 'x' * int(pct / 2)
             print(f"  Rating {rating}: {count:3d} ({pct:5.1f}%) {bar}")
     else:
         print("  No data")
@@ -127,7 +127,7 @@ def check_rating_distributions(json_files_pattern):
         for rating in [1, 2, 3, 4, 5]:
             count = art_counts.get(rating, 0)
             pct = count / len(article_ratings_all) * 100
-            bar = '█' * int(pct / 2)
+            bar = 'x' * int(pct / 2)
             print(f"  Rating {rating}: {count:3d} ({pct:5.1f}%) {bar}")
     else:
         print("  No data")
@@ -139,12 +139,12 @@ def check_rating_distributions(json_files_pattern):
     
     if statement_ratings_all:
         stmt_probs = [stmt_counts.get(r, 0) / len(statement_ratings_all) for r in [1,2,3,4,5]]
-        print(f"\n✅ For monte_carlo_CORRECTED.py line 26:")
+        print(f"\n For monte_carlo_CORRECTED.py line 26:")
         print(f"STATEMENT_RATING_PROBS = {[round(p, 3) for p in stmt_probs]}")
     
     if article_ratings_all:
         art_probs = [art_counts.get(r, 0) / len(article_ratings_all) for r in [1,2,3,4,5]]
-        print(f"\n✅ For monte_carlo_CORRECTED.py line 27:")
+        print(f"\n For monte_carlo_CORRECTED.py line 27:")
         print(f"ARTICLE_RATING_PROBS = {[round(p, 3) for p in art_probs]}")
     
     # Show attention-passed data for comparison
@@ -170,7 +170,7 @@ def check_rating_distributions(json_files_pattern):
             print(f"  Rating {rating}: {count:3d} ({pct:5.1f}%)")
     
     print(f"\n{'='*70}")
-    print(f"✅ NEXT STEPS:")
+    print(f" NEXT STEPS:")
     print(f"{'='*70}")
     print(f"1. Copy the STATEMENT_RATING_PROBS line above")
     print(f"2. Copy the ARTICLE_RATING_PROBS line above")
